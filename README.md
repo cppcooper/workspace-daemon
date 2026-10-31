@@ -106,6 +106,8 @@ socket. The supplied units keep the service and all its descendants in
 `paperclip.slice`, capped at 512 MiB / 50% CPU, with no swap and 128 tasks.
 They do not edit the existing Paperclip application or shared-slice limits.
 No installation/enabling is performed by the build or tests.
+`OOMPolicy=continue` allows a worker OOM to be reported without systemd stopping
+an otherwise healthy control service; the hard memory limit remains in effect.
 
 The daemon makes its private filesystem read-only, permitting writes only to
 the private common parent of manager/control storage and the socket directory.
