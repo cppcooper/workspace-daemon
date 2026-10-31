@@ -14,9 +14,9 @@ MemorySwapMax=0
 CPUQuota=50%
 TasksMax=128
 NoNewPrivileges=yes
-ProtectSystem=strict
-ProtectHome=read-only
-ReadWritePaths=%h/.local/state/workspace-daemon %t
+# The daemon applies read-only filesystem protection inside its own namespace
+# after validating original host ownership. systemd's corresponding user-unit
+# options create an earlier UID mapping that hides root ownership.
 KillMode=control-group
 TimeoutStopSec=10
 Restart=on-failure

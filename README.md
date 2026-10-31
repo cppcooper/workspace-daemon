@@ -11,8 +11,8 @@ I/O-bound service; no language-speed or production-throughput claim is made.
 
 There is no model, agent, scheduler, network listener, Board credential or
 Paperclip dependency in this service. It accepts local Unix-socket requests and
-does work only in response to them. **It is built locally, not installed into
-Paperclip or enabled as a persistent service.**
+does work only in response to them. **Building and testing do not install a
+persistent service or connect an orchestrator.**
 
 ## Build and test
 
@@ -106,6 +106,17 @@ socket. The supplied units keep the service and all its descendants in
 `paperclip.slice`, capped at 512 MiB / 50% CPU, with no swap and 128 tasks.
 They do not edit the existing Paperclip application or shared-slice limits.
 No installation/enabling is performed by the build or tests.
+
+The daemon makes its private filesystem read-only, permitting writes only to
+the private common parent of manager/control storage and the socket directory.
+The common parent must be owned by the service UID with mode 0700; manager stores
+must be below it so retained-seed renames stay on one mount. Its private proc
+instance remains writable for namespace helpers. This uses Linux
+`mount_setattr(2)` and fails closed if unsupported. These restrictions are applied
+after host ownership validation: systemd's `ProtectSystem`/`ProtectHome` options
+for user services otherwise introduce an earlier user namespace that hides
+root ownership and makes that validation fail. Worker commands retain their
+separate bubblewrap restrictions. Mount changes never propagate to the host.
 
 ## Storage and failure behavior
 

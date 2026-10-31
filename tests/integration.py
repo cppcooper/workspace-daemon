@@ -191,6 +191,19 @@ def main():
         f.start()
         assert stat.S_IMODE(f.state.stat().st_mode) == 0o700
         assert stat.S_IMODE(Path(f.socket).stat().st_mode) == 0o600
+        outside = f.base.parent / (f.base.name + '-readonly-probe')
+        outside.write_text('preserve\n')
+        try:
+            children = Path('/proc', str(f.process.pid), 'task', str(f.process.pid), 'children').read_text().split()
+            assert len(children) == 1
+            probe = 'import errno,sys;from pathlib import Path\ntry: Path(sys.argv[1]).write_text("bad")\nexcept OSError as error: assert error.errno == errno.EROFS\nelse: raise RuntimeError("daemon filesystem is writable outside storage")'
+            subprocess.run(['/usr/bin/nsenter', '--user', '--mount', '--preserve-credentials',
+                            '--target', children[0], '--', '/usr/bin/python3', '-c', probe, str(outside)],
+                           check=True, timeout=10, capture_output=True)
+            assert outside.read_text() == 'preserve\n'
+        finally:
+            outside.unlink(missing_ok=True)
+        passed.append('native read-only filesystem enforcement without host mount propagation')
         q, first = f.good("prepare", project="demo")
         passed.append("real manager preparation and rootless overlay")
         assert f.rpc(q)["operation_id"] == first["operation_id"]
@@ -341,7 +354,7 @@ def main():
         f.stop()
         # A failure keeps its fixture and diagnostic logs. Successful fixtures
         # are disposable and leave no model, service, mount or Paperclip changes.
-        if len(passed) == 12:
+        if len(passed) == 13:
             # OverlayFS leaves a mode-000 work/work directory owned by this UID.
             # Normalize only this disposable fixture after its namespace is gone.
             for directory, children, _ in os.walk(f.base):

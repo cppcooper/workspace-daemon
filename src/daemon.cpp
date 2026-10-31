@@ -3,6 +3,7 @@
 #include <atomic>
 #include <functional>
 #include <iostream>
+#include <linux/mount.h>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -15,6 +16,7 @@
 #include <sys/file.h>
 #include <sys/mount.h>
 #include <sys/prctl.h>
+#include <sys/syscall.h>
 #include <sys/wait.h>
 #include <thread>
 
@@ -580,6 +582,44 @@ class Server {
     }
 
   public:
+    void protect_filesystem() {
+        // Validate host ownership before entering any user namespace. Applying
+        // these restrictions here avoids systemd's implicit outer user mapping,
+        // which would make root-owned paths indistinguishable from other users.
+        auto storage = state.parent_path();
+        directory(storage);
+        check((fs::status(storage).permissions() &
+               (fs::perms::group_all | fs::perms::others_all)) == fs::perms::none,
+              "shared storage parent must be private 0700");
+        for (const auto &path : {root, fs::path(profile.at("cache_root").get<std::string>()),
+                                 fs::path(profile.at("recovery_root").get<std::string>())})
+            check(path.string().starts_with(storage.string() + "/"),
+                  "manager storage must share the private control parent");
+        // Keep storage in one bind mount: preparation atomically renames the
+        // manager seed into retained control storage, which cannot cross mounts.
+        std::set<fs::path> writable = {storage, fs::path(socket_path).parent_path()};
+        for (const auto &path : writable) {
+            directory(path);
+            system_check(mount(path.c_str(), path.c_str(), nullptr, MS_BIND | MS_REC, nullptr) == 0,
+                         "bind owned writable storage");
+        }
+        mount_attr readonly{};
+        readonly.attr_set = MOUNT_ATTR_RDONLY;
+        system_check(syscall(SYS_mount_setattr, AT_FDCWD, "/", AT_RECURSIVE, &readonly,
+                             sizeof readonly) == 0,
+                     "protect service filesystem");
+        mount_attr readwrite{};
+        readwrite.attr_clr = MOUNT_ATTR_RDONLY;
+        for (const auto &path : writable)
+            system_check(syscall(SYS_mount_setattr, AT_FDCWD, path.c_str(), AT_RECURSIVE,
+                                 &readwrite, sizeof readwrite) == 0,
+                         "allow owned writable storage");
+        // This is the newly mounted, private proc instance. Namespace helpers
+        // need its kernel interfaces; host /proc remains outside this namespace.
+        system_check(syscall(SYS_mount_setattr, AT_FDCWD, "/proc", AT_RECURSIVE, &readwrite,
+                             sizeof readwrite) == 0,
+                     "allow private process namespace interfaces");
+    }
     explicit Server(fs::path file) : config_file(std::move(file)) {
         trusted(config_file);
         config_text = read_text(config_file);
@@ -917,6 +957,7 @@ int main(int argc, char **argv) {
         auto status = namespace_supervisor();
         if (status >= 0)
             return status;
+        server.protect_filesystem();
         server.serve(inherited);
         return 0;
     } catch (const std::exception &e) {
