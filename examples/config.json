@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "allowed_uid": 1000,
+  "socket": "/run/user/1000/workspace-daemon.sock",
+  "state_root": "/home/builder/.local/state/workspace-daemon/control",
+  "manager_path": "/home/builder/agents/releases/coordination/9e344cac8e5aead21d306996db87bf44d419279a",
+  "bridge": "/home/builder/.local/libexec/workspace-daemon/manager.py",
+  "python": "/usr/bin/python3",
+  "profile": "/home/builder/.config/workspace-daemon/profile.json",
+  "registry": "/home/builder/.config/workspace-daemon/registry.json",
+  "owner": {"host": "janus-builds", "epoch": 1},
+  "commands": {
+    "git-status": {
+      "argv": ["/usr/bin/git", "status", "--porcelain=v1"],
+      "timeout_seconds": 10
+    }
+  },
+  "read_only_roots": [],
+  "max_operation_seconds": 120,
+  "max_records": 128
+}

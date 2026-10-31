@@ -1,0 +1,23 @@
+[Unit]
+Description=Workspace creation and process supervision
+Requires=workspace-daemon.socket
+After=workspace-daemon.socket
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/workspace-daemon --config %h/.config/workspace-daemon/config.json
+Environment=PATH=/usr/bin:/bin
+UMask=0077
+Slice=paperclip.slice
+MemoryMax=512M
+MemorySwapMax=0
+CPUQuota=50%
+TasksMax=128
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/workspace-daemon %t
+KillMode=control-group
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=2

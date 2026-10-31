@@ -1,0 +1,10 @@
+[Unit]
+Description=Local workspace service socket
+
+[Socket]
+ListenStream=%t/workspace-daemon.sock
+SocketMode=0600
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

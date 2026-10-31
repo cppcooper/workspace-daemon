@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "backend": "shared-history-v1",
+  "host": "janus-builds",
+  "uid": 1000,
+  "workspace_root": "/home/builder/.local/state/workspace-daemon/workspaces",
+  "cache_root": "/home/builder/.local/state/workspace-daemon/history",
+  "recovery_root": "/home/builder/.local/state/workspace-daemon/recovery",
+  "repositories": {
+    "example": {"sources": ["/home/builder/src/REPLACE_WITH_SELECTED_CLEAN_REPOSITORY"]}
+  },
+  "git_identity": {"name": "Joshua", "email": "REPLACE_WITH_GIT_EMAIL"}
+}

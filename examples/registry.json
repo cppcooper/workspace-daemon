@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "projects": {
+    "example": {
+      "selected": true,
+      "source": "/home/builder/src/REPLACE_WITH_SELECTED_CLEAN_REPOSITORY",
+      "pin": "REPLACE_WITH_EXACT_COMMIT",
+      "owner": {"host": "janus-builds", "epoch": 1},
+      "required_artifacts": []
+    }
+  }
+}
